@@ -1,0 +1,598 @@
+Application of Representation Learning in Detecting Botnet Attacks
+Hieu Le Ngoc1,* 
+1Faculty of Information Technology, Van Hien University
+
+* Corresponding author: Hieu Le Ngoc, hieuln@vhu.edu.vn 
+
+Abstract
+Botnet detection remains a perennial and critical challenge in cybersecurity. As long as the internet exists, threat actors will devise new ways to create and disguise these malicious networks, making the development of robust detection methods a task that will never be obsolete. Traditional approaches, which rely on rigid signatures and manual feature engineering, are locked in a reactive cycle, often failing against novel or evolving threats. This paper introduces a transformative approach that opens a new pathway for intrusion detection by reframing the problem. We pioneer a method that leverages representation learning to convert raw network traffic flow data into 2D grayscale images, thereby translating the abstract challenge of network analysis into a concrete problem of visual pattern recognition. Deploying a deep learning model on the publicly available CTU-13 dataset, our system achieved a peak detection accuracy of 97.16%. This result validates our approach and demonstrates a new vision for cybersecurity—one where bridging disparate fields can lead to more automated, adaptive, and powerful defense systems.
+Keywords: Botnet, Representation Learning, Deep Learning, Cybersecurity, Network Traffic Analysis, Anomaly Detection.
+ 
+1. Introduction
+In the interconnected digital landscape, botnets have emerged as one of the most significant and formidable threats to global cybersecurity. A botnet, or "robot network," is a collection of compromised internet-connected devices, or "zombies," remotely controlled by a threat actor known as a "botmaster" (Al-Shurbaji et al., 2025). These networks provide a distributed platform for a wide array of malicious activities, including launching massive Distributed Denial of Service (DDoS) attacks, disseminating spam and phishing emails, perpetrating click fraud, and stealing sensitive personal and financial information (Kundu et al., 2024). With the exponential growth of the Internet of Things (IoT), the attack surface has expanded dramatically, as billions of often-insecure devices become prime targets for botnet recruitment, creating colossal networks capable of unprecedented disruption (Nketia et al., 2024; Ahmed & Tjortjis, 2022). The persistent evolution of botnets ensures that their detection remains a critical and perennial challenge for security researchers and practitioners.
+Traditional botnet detection systems have largely depended on signature-based methods, which identify known attack patterns and malware signatures. While effective against documented threats, these systems are inherently reactive and fail to detect zero-day attacks or polymorphic malware that constantly alters its code (“The significance of machine learning and deep learning techniques in cybersecurity: A comprehensive review”, 2023; Suthar et al., 2022). Anomaly-based detection systems offer an alternative by modeling normal network behavior and flagging deviations. However, they often suffer from high false-positive rates and can be evaded by attacks that mimic benign traffic (Saeed et al., 2023). The problem is further compounded by the rapid evolution of botnet command and control (C&C) structures, which have shifted from centralized models (e.g., IRC, HTTP) to more resilient and evasive peer-to-peer (P2P) and encrypted architectures, rendering conventional inspection techniques ineffective (Dasgupta et al., 2022; Xing et al., 2021). Consequently, the need for more advanced and adaptive detection techniques is critical.
+To overcome these limitations, the research community has increasingly turned to machine learning (ML) and deep learning (DL) (Awad et al., 2026). DL models, in particular, can autonomously learn intricate patterns and hierarchical features directly from raw data, reducing the reliance on manual feature engineering (Aversano et al., 2021; Alomari et al., 2023). Numerous studies have successfully applied various architectures, such as Recurrent Neural Networks (RNNs) for analyzing sequential traffic data and Convolutional Neural Networks (CNNs) for identifying spatial patterns in network communications (Ali et al., 2024). While these approaches have significantly improved detection accuracy, many still depend on pre-processed, statistical features extracted from network flows, a process which may inadvertently discard subtle yet crucial information and remains a bottleneck in creating truly autonomous systems (Emirmahmutoğlu & Atay, 2025).
+This research contributes a novel approach that fundamentally reframes the detection problem by bridging the gap between network security and computer vision through representation learning. We propose converting abstract network flow data into a spatial format—2D grayscale images—where each image is a unique visual fingerprint of a single network communication. This method allows for the direct application of state-of-the-art CNNs that excel at pattern recognition, bypassing the laborious and often incomplete process of manual feature extraction (Lu & Chen, 2022; Kim & Pak, 2023). The primary objective of this research is to design, implement, and evaluate this image-based botnet detection model. Specifically, this study seeks to determine how raw network traffic can be effectively transformed into a 2D image representation, assess the performance of a deep learning classifier using this representation, and investigate how the dimensionality of the image impacts the model's accuracy and efficiency. This approach has the potential to enable the detection of novel and more sophisticated botnet attacks by learning representations directly from the data itself (Wang et al., 2022; Vinayakumar et al., 2021).
+This paper is structured as follows. Section 2 provides a comprehensive review of the existing literature on botnet detection and the application of machine learning. Section 3 details the proposed methodology, including data collection, the traffic-to-image conversion process, and the deep learning model architecture. Section 4 presents the experimental setup, results, and a thorough discussion of the findings. Finally, Section 5 concludes the paper by summarizing the key contributions, acknowledging the study's limitations, and recommending directions for future research.
+ 
+2. Literature Review
+This section provides a comprehensive review of botnet detection methodologies, tracing their evolution from foundational techniques to the current deep learning frontier. We analyze the limitations of traditional approaches, explore the transformative impact of machine learning, and contextualize our research within the emerging paradigm of representation learning and network traffic visualization.
+2.1. Foundational Botnet Detection: Signatures and Anomalies
+Early botnet detection methodologies are broadly categorized into signature-based and anomaly-based approaches. Signature-based detection, exemplified by systems like Snort and Suricata, operates by matching network traffic against a database of known malicious patterns, such as specific payload strings, IP addresses, or domain names (Suthar et al., 2022). While highly accurate for known threats, this approach is fundamentally reactive. It cannot detect zero-day exploits or polymorphic botnets that dynamically alter their signatures to evade detection, a limitation that has become increasingly severe in the modern threat landscape (“The significance of machine learning and deep learning techniques in cybersecurity: A comprehensive review”, 2023; U. Ahmed et al., 2025).
+
+Botnet attack method diagram. 
+(https://vietnetco.vn/botnet-la-gi-giai-phap-phong-ve-botnet-fortiguard/4999.html).
+
+To address this gap, anomaly-based techniques were developed. These systems first establish a baseline of normal network behavior and then flag any significant deviations as potentially malicious (Saeed et al., 2023). Methods in this category analyze various network characteristics, such as flow duration, packet counts, port usage, and protocol distributions (Alshamkhany et al., 2020; Alnajim et al., 2023). For instance, synchronized communication patterns across multiple internal hosts to a single external entity could indicate a C&C channel (Pokhrel et al., 2021). However, anomaly-based systems are often plagued by high false-positive rates, as legitimate but unusual network events can be misclassified as attacks (Buczak & Guven, 2016). Furthermore, advanced botnets can evade these systems by generating traffic that closely mimics benign communications or by slowly adapting their behavior to poison the "normal" baseline (Mohale & Obagbuwa, 2025; Al-Shurbaji et al., 2025).
+
+Botnet Life Cycle. (Raghava et. al., 2012)
+
+2.2. The Shift Towards Machine Learning-Based Detection
+The inherent limitations of foundational methods catalyzed a shift towards Machine Learning (ML), which has become a cornerstone of modern cybersecurity research (Ahmad et al., 2021; Awed et al., 2026). Early applications involved traditional ML classifiers to automate the detection process based on statistical features. Algorithms such as Support Vector Machines (SVM) (Janabi et al., 2024), Decision Trees (Chen et al., 2021), Random Forests (Akash et al., 2022), and k-Nearest Neighbors (k-NN) (Fang, 2023) have been widely employed to classify network flows as either benign or malicious. For example, Random Forests have proven particularly effective in identifying botnets that use Domain Generation Algorithms (DGAs) by analyzing the linguistic and statistical properties of queried domain names (Hoang & Vu, 2022; Ren et al., 2020).
+Despite their advancements over static rule-based systems, the performance of these traditional ML models is fundamentally constrained by their reliance on feature engineering (Emirmahmutoğlu & Atay, 2025). This process requires significant domain expertise to manually select, extract, and refine a set of features that are believed to be discriminative. This manual intervention is not only time-consuming and prone to human bias but also brittle; a feature set designed for one type of botnet may be entirely ineffective against a new variant with different behavioral patterns (Aljehane et al., 2024; Kasongo & Sun, 2019). This feature engineering bottleneck has been a primary driver for the adoption of more advanced deep learning techniques.
+TABLE I
+Summary of Traditional Machine Learning in Botnet Detection
+Category
+Description
+Algorithms
+• Support Vector Machines (SVM)
+• Decision Trees
+• Random Forests
+• k-Nearest Neighbors (k-NN)
+Approach
+Classifies network flows as benign or malicious based on pre-defined statistical features.
+Example Application
+Using Random Forests to detect Domain Generation Algorithm (DGA) botnets by analyzing domain name characteristics.
+Strengths
+• Automates the detection process.
+• More advanced and flexible than static, rule-based systems.
+Key Limitation
+Reliance on Manual Feature Engineering, which is:
+• Time-consuming and requires domain expertise.
+• Prone to human bias.
+• Brittle: Fails against new or evolving botnet variants.
+Consequence
+This feature engineering bottleneck is the primary driver for the adoption of Deep Learning techniques.
+
+ 
+
+2.3. The Deep Learning Revolution and its Current Trajectory
+Deep Learning (DL) has revolutionized botnet detection by enabling models to automatically learn hierarchical feature representations directly from complex data (Aversano et al., 2021; Awad et al., 2026). Various DL architectures have been tailored for network security tasks. Recurrent Neural Networks (RNNs) and their variants, such as Long Short-Term Memory (LSTM) and Gated Recurrent Units (GRUs), are well-suited for modeling the temporal dependencies in network traffic sequences (Dasgupta et al., 2022; Ali et al., 2024). Convolutional Neural Networks (CNNs), traditionally used for image processing, have been adapted to find spatial patterns in 1D network data, such as raw packet bytes or sequences of flow features (Alkahtani & Aldhyani, 2021; Qazi et al., 20221). Hybrid models, like the CNN-LSTM, combine the strengths of both architectures to simultaneously capture spatial and temporal characteristics (Gueriani et al., 2024; Alkahtani & Aldhyani, 2021).
+The application of DL is rapidly advancing into specialized domains. In the context of IoT, researchers are developing lightweight DL models capable of running on resource-constrained devices to detect botnets like Mirai and Mozi (Soofi et al., 2024; Nketia et al., 2024). Another major challenge is the proliferation of encrypted traffic, which renders payload inspection useless. To counter this, researchers are using DL to analyze metadata, TLS handshake parameters, and statistical flow characteristics to detect malicious activity without decryption (Xing et al., 2021; Alwhbi et al., 2024). Furthermore, paradigms like Federated Learning are being explored to train collaborative botnet detection models across organizations without sharing sensitive data, addressing privacy concerns (Nguyen et al., 2021; Mothukuri et al., 2022). However, even with DL's power, many implementations still operate on pre-processed feature vectors, not truly raw data, leaving room for further innovation (Emirmahmutoğlu & Atay, 2025).
+2.4. Related Works: The Emergence of Representation Learning via Traffic Visualization
+A persistent challenge in applying DL to cybersecurity is finding the optimal data representation. This has given rise to a subfield focused on representation learning, where the goal is to discover data transformations that make complex patterns more accessible to learning algorithms (Wang et al., 2022; Vinayakumar et al., 2021). One of the most innovative and promising approaches in this area is network traffic visualization, which converts abstract network data into images, thereby reframing intrusion detection as a computer vision problem. This paradigm is the most direct body of related work to our study.
+Recent studies have validated the efficacy of this approach. Ho et al.  (2022) demonstrated that converting network sessions into images and classifying them with a CNN could effectively detect various intrusions. Similarly, researchers have successfully used this technique for malware classification by visualizing the binary structure of executables (Bakour & Ünver, 2021) and for identifying encrypted malicious traffic by creating "fingerprints" from TLS/SSL sessions (Shen et al., 2023). In the IoT domain, image-based representations of network flows have been used to train models that detect botnet activity with high accuracy, often leveraging transfer learning from pre-trained models like VGG or ResNet to achieve faster convergence and better performance (Kim & Pak, 2023; Rodriguez et al., 2022).
+Table II
+Overview of Representation Learning via Traffic Visualization
+Aspect
+Summary
+Core Idea
+Convert abstract network data (flows, packets) into 2D images to reframe cybersecurity as a computer vision problem.
+Goal
+Leverage powerful, pre-existing models like CNNs to automatically discover complex patterns without manual feature engineering.
+Proven Applications
+• General Intrusion Detection: Classifying network sessions.
+• Malware Analysis: Visualizing the binary structure of executables.
+• Encrypted Traffic: Identifying malicious TLS/SSL "fingerprints".
+• IoT Botnet Detection: Using transfer learning on flow-based images.
+Identified Research Gap
+The image generation process, especially the image resolution (size), is often treated as a fixed step. Its impact on model performance and efficiency is not well understood.
+This Study's Focus
+To directly address this gap by systematically investigating how different image resolutions affect the botnet detector's accuracy and training efficiency.
+
+
+While these studies confirm the potential of traffic-to-image conversion, they also reveal a research gap. The process of generating these images—including the mapping of features to pixels and the final image resolution—is often treated as a fixed step rather than a critical hyperparameter. The impact of image dimensionality on model performance, efficiency, and the quality of the learned representation is not yet well understood. Our work is situated directly within this emerging trend and aims to address this gap. By systematically investigating how different image resolutions affect the performance of a CNN-based botnet detector, we build upon existing research and contribute a deeper understanding of how to optimize this powerful representation learning technique for cybersecurity.
+
+3. Proposed Detection Framework
+ The methodological framework of this study is designed to systematically transform raw network flow data into a visual representation suitable for deep learning-based classification. Our end-to-end pipeline is structured to address the challenges of feature engineering and class imbalance, culminating in a novel representation learning approach. The core innovation lies in converting each network flow into a 2D grayscale image, thereby reframing the botnet detection task as a computer vision problem. This process consists of four main stages: dataset selection and description, data preprocessing and balancing, feature engineering and encoding, and finally, the traffic-to-image transformation.
+3.1. Dataset Description
+This study utilizes the CTU-13 dataset, a benchmark repository for botnet research created by Garcia et al. (2014). This dataset is widely recognized for its realism, as it contains 13 captures ("scenarios") of real-world network traffic from a university network, featuring various botnet infections combined with benign user and background traffic. A key advantage of the CTU-13 dataset is that it provides labeled bidirectional network flow data (NetFlows), offering a reliable ground truth for training and evaluating supervised models.
+Table III
+ Characteristics of botnet scenarios in the CTU-13 dataset
+Id
+IRC
+SPAM
+CF
+PS
+DdoS
+FF
+P2P
+US
+HTTP
+Note
+1
+✔
+✔
+✔
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2
+✔
+✔
+✔
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3
+✔
+
+
+
+
+✔
+
+
+
+
+
+
+✔
+
+
+
+
+4
+✔
+
+
+
+
+
+
+✔
+
+
+
+
+✔
+
+
+UDP và ICMP DdoS
+5
+
+
+✔
+
+
+✔
+
+
+
+
+
+
+
+
+✔
+Scan web proxies.
+6
+
+
+
+
+
+
+✔
+
+
+
+
+
+
+
+
+
+
+Proprietary C&C. RDP.
+7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✔
+Chinese hosts
+8
+
+
+
+
+
+
+✔
+
+
+
+
+
+
+
+
+
+
+Proprietary C&C. Net-BIOS, STUN.
+9
+✔
+✔
+✔
+✔
+
+
+
+
+
+
+
+
+
+
+
+
+10
+✔
+
+
+
+
+
+
+✔
+
+
+
+
+✔
+
+
+UDP DdoS
+11
+✔
+
+
+
+
+
+
+✔
+
+
+
+
+✔
+
+
+ICMP DdoS
+12
+
+
+
+
+
+
+
+
+
+
+
+
+✔
+
+
+
+
+Synchronization
+13
+
+
+✔
+
+
+✔
+
+
+
+
+
+
+
+
+✔
+Captcha. Web mail.
+
+
+For our experiments, we selected Scenario 8, which captures the activity of the "Murlo" botnet. This scenario was chosen for its substantial volume and rich mixture of traffic types, providing a challenging and realistic test case for our model. The dataset contains flows labeled as Botnet, Normal, and Background, allowing for a granular analysis of different communication patterns.
+Table IV
+ Amount of data per botnet scenario
+Id
+Time (hour)
+#Packets
+#NetFlows
+Size
+Bot
+#Bots
+1
+6.15
+71,971,482
+2,824,637
+52GB
+Neris
+1
+2
+4.21
+71,851,300
+1,808,123
+60GB
+Neris
+1
+3
+66.85
+167,730,395
+4,710,639
+121GB
+Rbot
+1
+4
+4.21
+62,089,135
+1,127,077
+53GB
+Rbot
+1
+5
+11.63
+4,481,167
+129,833
+37.6GB
+Virut
+1
+6
+2.18
+38,764,357
+558,920
+30GB
+Menti
+1
+7
+0.38
+7,467,139
+114,078
+5.8GB
+Sogou
+1
+8
+19.5
+155,207,799
+2,954,231
+123GB
+Murlo
+1
+9
+5.18
+115,415,321
+2,753,885
+94GB
+Neris
+10
+10
+4.75
+90,389,782
+1,309,792
+73GB
+Rbot
+10
+11
+0.26
+6,337,202
+107,252
+5.2GB
+Rbot
+3
+12
+1.21
+13,212,268
+325,472
+8.3GB
+NSIS.ay
+3
+13
+16.36
+50,888,256
+1,925,150
+34GB
+Virut
+1
+
+
+3.2. Data Preprocessing and Balancing
+The initial step involved preparing the raw NetFlows from the selected scenario for analysis. Given our primary goal of identifying malicious botnet activity, traffic labeled as Background—representing ambient, non-malicious network noise—was merged with the Normal class to form a single "benign" category.
+Table V
+DETAILS OF THE ATTRIBUTES IN THE DATASET
+#
+Features
+not null records
+Data type
+Meaning
+1
+StartTime
+2954230
+object
+Start Recording Time
+2
+Dur
+2954230
+float64
+Total Recording Time
+3
+Proto
+2954230
+object
+Transaction Protocol
+4
+SrcAddr
+2954230
+object
+Source IP Address
+5
+Sport
+2923545
+object
+Source Port Code
+6
+Dir
+2954230
+object
+Transaction Direction
+7
+DstAddr
+2954230
+object
+Destination IP Address
+8
+Dport
+2939943
+object
+Destination Port Code
+9
+State
+2954227
+object
+Source Packets Per Second
+10
+sTos
+2921292
+float64
+Source TOS Bytes
+11
+dTos
+2799837
+float64
+Destination TOS Bytes
+12
+TotPkts
+2954230
+int64  
+Total Transaction Packets
+13
+TotBytes
+2954230
+int64  
+Total Transaction Bytes
+14
+SrcBytes
+2954230
+int64  
+Number of Bytes from Source to Destination Transaction
+15
+Label
+2954230
+object
+Label
+
+
+Upon initial analysis, a severe class imbalance was identified, a common and critical challenge in cybersecurity datasets (Saeed et al., 2023). The dataset contained 2,948,101 benign flows versus only 5,054 botnet flows. Training a classifier on such imbalanced data can cause it to become heavily biased towards the majority class, leading to a high accuracy score that is misleadingly optimistic because the model fails to learn the characteristics of the minority (malicious) class (Aljehane et al., 2024). To mitigate this, we employed random down-sampling of the majority (benign) class. This technique was chosen for its simplicity and to avoid the potential introduction of synthetic noise that can occur with over-sampling methods like SMOTE. By reducing the number of benign samples, we created a balanced dataset of approximately 12,127 flows, ensuring the model would give equal importance to both classes during training.
+3.3. Feature Engineering and Encoding
+The CTU-13 dataset features a mix of numerical, categorical, and object data types, which must be converted into a purely numerical format for the model. We applied a two-pronged encoding strategy based on the nature of the features:
+One-Hot Encoding: For low-cardinality categorical features with no inherent ordinal relationship, such as Proto (protocol), Dir (direction), and State, one-hot encoding was used. This method creates a new binary column for each unique category, preventing the model from inferring a false and misleading order between categories (e.g., that TCP is numerically "greater" than UDP).
+Label Encoding: For high-cardinality nominal features like SrcAddr (source IP address), Sport (source port), DstAddr, and Dport, applying one-hot encoding would lead to a dimensionality explosion, making the model computationally intractable. As a pragmatic trade-off, we used label encoding to convert each unique value into a distinct integer. While this introduces an artificial ordinal relationship, it keeps the feature space manageable.
+Following this encoding process, each network flow was represented by a unified numerical vector, which expanded the feature space from its original 15 columns to 85.
+3.4. Representation Learning: Traffic-to-Image Transformation
+This stage is the cornerstone of our representation learning approach, where the pre-processed 1D feature vectors are transformed into 2D grayscale images. This process converts the abstract statistical properties of network traffic into spatial patterns that are highly amenable to analysis by Convolutional Neural Networks (CNNs). The transformation involves two critical steps:
+Normalization: The entire 85-dimensional feature vector for each flow was normalized using a MinMaxScaler. This function scales each feature to a pre-defined range—in our case, the pixel intensity range of ****. This ensures that features with large numerical ranges (e.g., total bytes) do not visually dominate the resulting image and allows the subtle variations in all features to contribute to the final representation.
+Reshaping and Padding: The resulting 1D vector of 85 pixel values was then reshaped into a 2D matrix to form a grayscale image. To investigate the impact of representation dimensionality on model performance, we experimented with three distinct target image sizes: 192x192, 200x200, and 224x224. Since the feature vector was smaller than the total number of pixels in each image size, the remaining pixels were filled using zero-padding. Each generated image thus serves as a unique visual "fingerprint" of a network flow, where the spatial arrangement of pixel intensities captures the relationships between its features. This approach is grounded in recent research demonstrating the efficacy of converting network data to images for intrusion and malware detection (Lu & Chen, 2022; Kim & Pak, 2023). Figure 1 provides sample images generated for each traffic class, illustrating the visual distinctions the model learns to identify.
+
+
+Images of labels after being converted to images
+
+By transforming the problem in this way, we leverage the powerful inductive biases of CNNs, which are expertly designed to learn hierarchical patterns, textures, and structures from spatial data.
+
+The proportions of the data sets
+
+4. Results and Discussion
+This section presents the empirical results of our proposed botnet detection framework and provides a comprehensive discussion of their implications. We first detail the performance metrics from our experiments and then delve into a deeper analysis of the critical role of representation dimensionality. Finally, we situate our findings within the broader context of modern cybersecurity challenges and future research trajectories.
+4.1. Empirical Performance Analysis
+The efficacy of our traffic-to-image conversion approach was rigorously evaluated using the held-out test set. The CNN model was trained and tested on three distinct image resolution configurations, with the key performance indicators summarized in Table 1. The results unequivocally demonstrate the success of the proposed method, with the model achieving a peak accuracy of 97.16% and a minimum loss of 10.52% when using the 200x200 image representation. This configuration not only yielded the highest performance but also proved to be the most computationally efficient, converging in just 46 epochs over approximately 17 minutes of training. The training and validation loss curves, depicted in Figure 2, visually corroborate these findings, showing a smooth and stable convergence for the 200x200 model, indicative of an effective learning process.
+Table VI - Model Performance Comparison Across Different Image Sizes
+Image Size
+Test Accuracy
+Test Loss
+Correctly Classified
+Training Time
+Epochs Run
+192×192
+96.29%
+16.16%
+2336 / 2426
+28m 33s
+93
+200×200
+97.16%
+10.52%
+2357 / 2426
+17m 02s
+46
+224×224
+93.16%
+18.37%
+2260 / 2426
+30m 31s
+79
+
+
+
+
+
+
+Training and validation loss curves for image sizes 192x192 (left), 200x200 (center), and 224x224 (right).*
+ 
+4.2. The Critical Role of Representation Dimensionality
+A core research question of this study was to understand how image dimensionality impacts model performance. Our results reveal that the choice of image size is not arbitrary but a critical hyperparameter that directly influences the quality of the learned representation.
+The 200x200 resolution appears to be the "sweet spot" for this dataset's feature space. It provides a sufficiently large canvas for the 85-dimensional feature vector to be mapped without excessive cramping, allowing the CNN's convolutional filters to effectively learn the subtle spatial relationships between pixel intensities. In contrast, the 192x192 representation, while still high-performing, may have forced features into a more condensed spatial arrangement, potentially creating ambiguity and making it slightly harder for the model to distinguish fine-grained patterns.
+More revealing is the performance degradation observed with the 224x224 images. The lower accuracy and higher loss suggest that the larger dimensionality introduced detrimental sparsity. With the 85 feature pixels spread across a much larger grid, the CNN's filters, which operate on local neighborhoods, would predominantly encounter empty (zero-padded) regions. This sparsity can hinder the model's ability to learn meaningful correlations between distant features, effectively introducing noise and complicating the learning process. This finding aligns with challenges related to the "curse of dimensionality," where an overly large feature space can degrade rather than improve model performance (Vinayakumar et al., 2021). This highlights that an optimal balance must be struck between providing enough space for feature representation and avoiding counterproductive sparsity.
+4.3. Broader Implications and Future Trajectory
+The high accuracy achieved by our model is significant, but the true potential of this approach lies in its ability to overcome the fundamental limitations of traditional security systems.
+1. Automating Feature Engineering and Enhancing Adaptability: The most powerful implication of our work is the successful circumvention of manual feature engineering. By learning representations directly from the data, the model autonomously discovers the most discriminative patterns without human intervention. This directly addresses the primary bottleneck of conventional ML-based detection systems, which rely on brittle, hand-crafted feature sets (Emirmahmutoğlu & Atay, 2025). This automated learning capability makes the system inherently more adaptive and robust, with a higher potential to generalize to zero-day botnet variants whose behaviors do not match any pre-defined feature sets (Ahmad et al., 2021).
+2. Relevance in the Modern Threat Landscape: Our approach is particularly well-suited to address two of the most pressing challenges in network security today: encrypted traffic and the explosion of IoT devices.
+Encrypted Traffic Analysis: As threat actors increasingly use TLS/SSL to encrypt C&C communications, methods relying on deep packet inspection are rendered obsolete (Xing et al., 2021). Our image-based technique, however, operates on metadata and statistical flow features (e.g., duration, byte counts, direction), which remain visible even when the payload is encrypted. This makes it a viable and future-proof strategy for identifying malicious activity in encrypted streams (Shen et al., 2023).
+IoT Security: The proliferation of insecure IoT devices has created an enormous attack surface for botnets like Mirai and Mozi (Nketia et al., 2024). Our method can be scaled to analyze the vast and heterogeneous traffic generated by these devices, potentially identifying the unique visual "fingerprints" of compromised IoT nodes that might be missed by statistical analysis alone.
+3. Future Research Directions: This study opens several exciting avenues for future work. A logical next step is to create richer, multi-channel image representations. Instead of a grayscale image, one could generate an RGB image where each color channel represents a different modality of the network flow (e.g., the 'R' channel for packet size statistics, 'G' for timing characteristics, and 'B' for protocol flags). This would provide the model with a far more information-dense input. Furthermore, as computer vision continues to advance, future work could explore the application of more sophisticated architectures like Vision Transformers (ViT), which have shown remarkable performance in capturing global relationships within images and may prove even more effective at this task (Kim & Pak, 2023). Finally, as AI-based detection becomes more common, the frontier will shift to developing models that are robust against adversarial attacks, where threat actors intentionally craft malicious traffic to generate benign-looking images and evade detection.
+5. Conclusion
+In the relentless cat-and-mouse game of cybersecurity, where attackers continuously innovate to evade detection, reactive security measures are no longer sufficient. This study pioneered a paradigm shift, moving away from the brittle nature of signature-based systems and the laborious process of manual feature engineering. By reframing the abstract challenge of network analysis as a concrete problem of visual pattern recognition, we have unlocked a powerful new approach to botnet detection. Our model, which transforms raw network flows into 2D grayscale images for classification by a Convolutional Neural Network, demonstrated exceptional performance, achieving a peak accuracy of 97.16% on the CTU-13 dataset. The finding that representation dimensionality is a critical hyperparameter, with the 200x200 resolution providing an optimal balance of performance and efficiency, offers a crucial insight for future research in this domain.
+The implications of this research extend far beyond its immediate results. In an era dominated by zero-day threats and polymorphic malware, the ability of our model to autonomously learn discriminative features directly from data represents a significant step towards creating more resilient and adaptive security systems. This approach is particularly relevant to two of the most pressing modern challenges: the ubiquitous use of encryption and the explosion of the Internet of Things (IoT). Because our method analyzes metadata and flow characteristics rather than packet payloads, it remains effective even when traffic is encrypted. Furthermore, its ability to identify subtle patterns at scale makes it ideally suited for monitoring the chaotic and often-unpredictable traffic generated by vast IoT ecosystems, providing a scalable defense against the next generation of large-scale botnets.
+While this study provides a robust proof-of-concept, we acknowledge its limitations as the foundation for future innovation. The model's evaluation on the older CTU-13 dataset and its offline implementation highlight the critical next steps. The path forward requires validating this framework against contemporary datasets rich with IoT and encrypted traffic, such as Bot-IoT or N-BaIoT, to prove its efficacy against modern threats. The true potential of this approach will be realized by exploring more sophisticated representations—for instance, moving beyond grayscale to create rich, multi-channel RGB images where each channel encodes a different aspect of the network flow (e.g., timing, packet size, protocol flags).
+Ultimately, the future of cybersecurity lies in developing intelligent, autonomous systems that can anticipate and adapt to threats in real-time. Future work should focus on translating this framework into a high-throughput security appliance and exploring next-generation architectures like Vision Transformers (ViT) to further enhance detection capabilities. This research offers more than just a new tool; it provides a new lens through which to view network data, demonstrating that by creatively reimagining the nature of the information we seek to protect, we can build a more secure and resilient digital future.
+
+ 
