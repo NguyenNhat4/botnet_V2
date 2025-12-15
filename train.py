@@ -10,6 +10,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler
 from sklearn.utils import class_weight
 from tqdm.auto import tqdm
+from botnet_source_code import weights_tensor
+from loss import FocalLoss
 try:
     from torchinfo import summary
 except ImportError:
@@ -238,17 +240,13 @@ def main():
 
     train_ds = FastBotnetDataset(X_train_final, y_train_final)
     
-    # Upsampling
-    print("Configuring WeightedRandomSampler for Upsampling...")
-    sample_weights_np = class_weights[y_train_final]
-    sample_weights = torch.from_numpy(sample_weights_np).double()
-    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
-
+    print("Using focal loss")
+   
+   
     train_loader = DataLoader(
         train_ds,
         batch_size=BATCH_SIZE,
-        sampler=sampler,
-        shuffle=False,
+        shuffle=True,
         num_workers=0 # Avoid multiprocessing issues in some envs
     )
 
@@ -268,7 +266,8 @@ def main():
     else:
         print(model)
 
-    criterion = nn.CrossEntropyLoss()
+    weights_tensor = torch.tensor(class_weights,dtype=torch.float).to(device)
+    criterion = FocalLoss(weight=weights_tensor,gammar=2.0)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
