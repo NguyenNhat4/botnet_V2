@@ -99,7 +99,7 @@ def process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None):
     for col in ['Sport', 'Dport']:
         if col in df.columns:
             # Force numeric (handle hex or strings)
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(-1)
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
     # 6. Drop IP addresses (High cardinality, replaced by freq)
     df = df.drop(columns=['SrcAddr', 'DstAddr'], errors='ignore')
