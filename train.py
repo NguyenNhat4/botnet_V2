@@ -26,7 +26,8 @@ from utils import (
     rename, get_csv_paths, plot_and_save_loss
 )
 from preprocessing_utils import (
-    quick_classify, calculate_global_frequencies, process_batch_fast_v2
+    quick_classify, calculate_global_frequencies, process_batch_fast_v2,
+    save_global_stats, save_scaler
 )
 from model import BotnetClassifier
 from data_loader import FastBotnetDataset, load_data_from_csvs
@@ -197,6 +198,11 @@ def main():
     print("\nLoading TRAINING Data...")
     X_train, y_train = load_data_from_csvs(train_csvs, global_stats, desc="Train Data", is_train=True, scaler=scaler)
     
+    # Save statistics and scaler after processing training data
+    print("\nSaving Global Statistics and Scaler...")
+    save_global_stats(global_stats)
+    save_scaler(scaler)
+
     print("\nLoading TESTING Data...")
     X_test, y_test = load_data_from_csvs(test_csvs, global_stats, desc="Test Data", is_train=False, scaler=scaler)
 

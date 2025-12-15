@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import pickle
+import os
 from tqdm.auto import tqdm
 
 def quick_classify(label):
@@ -142,3 +144,29 @@ def process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None):
     y_vals = y.values if y is not None else None
     
     return X_vals, y_vals, df.columns.tolist()
+
+def save_global_stats(global_stats, filepath='global_stats.pkl'):
+    """Saves global statistics to a pickle file."""
+    with open(filepath, 'wb') as f:
+        pickle.dump(global_stats, f)
+    print(f"Global stats saved to {filepath}")
+
+def load_global_stats(filepath='global_stats.pkl'):
+    """Loads global statistics from a pickle file."""
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"{filepath} not found.")
+    with open(filepath, 'rb') as f:
+        return pickle.load(f)
+
+def save_scaler(scaler, filepath='scaler.pkl'):
+    """Saves the scaler to a pickle file."""
+    with open(filepath, 'wb') as f:
+        pickle.dump(scaler, f)
+    print(f"Scaler saved to {filepath}")
+
+def load_scaler(filepath='scaler.pkl'):
+    """Loads the scaler from a pickle file."""
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"{filepath} not found.")
+    with open(filepath, 'rb') as f:
+        return pickle.load(f)
