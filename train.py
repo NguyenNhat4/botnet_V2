@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler
 from sklearn.utils import class_weight
 from tqdm.auto import tqdm
-from botnet_source_code import weights_tensor
 from loss import FocalLoss
 try:
     from torchinfo import summary
@@ -225,13 +224,11 @@ def main():
     # 6. MODEL SET UP
     # =============================================================================
     
-    # Class Weights
-    class_weights = class_weight.compute_class_weight(
-        class_weight='balanced',
-        classes=np.unique(y_train),
-        y=y_train
-    )
-    print(f"Class Weights: {class_weights}")
+    # # Class Weights
+    # class_weights = class_weight.compute_class_weight(
+    #     classes=np.unique(y_train),
+    #     y=y_train
+    # )
 
     # Validation Split
     X_train_final, X_val, y_train_final, y_val = train_test_split(
@@ -266,8 +263,8 @@ def main():
     else:
         print(model)
 
-    weights_tensor = torch.tensor(class_weights,dtype=torch.float).to(device)
-    criterion = FocalLoss(weight=weights_tensor,gammar=2.0)
+    # weights_tensor = torch.tensor(,dtype=torch.float).to(device)
+    criterion = FocalLoss(weight=None,gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
@@ -320,11 +317,10 @@ def main():
             print(f"  Val loss decreased ({best_val_loss:.4f} -> {epoch_val_loss:.4f}). Saving model...")
             torch.save(model.state_dict(), 'best_model.pth')
             best_val_loss = epoch_val_loss
-            
+        plot_and_save_loss(train_losses, valid_losses, f'training_history_loss_{N_EPOCHS}.png')
     # =============================================================================
     # 8. RESULTS
     # =============================================================================
-    plot_and_save_loss(train_losses, valid_losses, f'training_history_loss_{IMAGE_SIZE}.png')
     print("Training Complete.")
 
 if __name__ == "__main__":

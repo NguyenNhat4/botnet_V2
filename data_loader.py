@@ -52,6 +52,12 @@ def load_data_from_csvs(csv_list, global_stats, desc="Loading", is_train=True, s
 
     X_data = np.vstack(X_list).astype(np.float32)
     y_data = np.concatenate(y_list).astype(np.int64)
+    # 1. Sanitize input: Replace existing NaNs/Infs with 0
+    X_data = np.nan_to_num(X_data, nan=0.0, posinf=0.0, neginf=0.0)
+
+    # 2. Clip negative values to 0. 
+    # This prevents np.log1p(-1) from becoming -inf.
+    X_data = np.maximum(X_data, 0)
 
     # Normalize (Log1p + Scaler)
     X_data = np.log1p(X_data)

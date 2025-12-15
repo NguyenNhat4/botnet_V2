@@ -32,7 +32,7 @@ IMAGE_SIZE = 32
 # DEFINING SCENARIOS
 # =============================================================================
 # Train scenarios: Neris, Murlo, Virut, Menti, Sogou
-TRAIN_SCENARIOS = ['1', '2', '5','12','13','6','3','4', '8', '9','11']
+TRAIN_SCENARIOS = ['3','4', '11']
 
 # Test scenario: Rbot
 TEST_SCENARIOS = ['10']
