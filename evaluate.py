@@ -197,7 +197,10 @@ def main():
     recall = recall_score(y_true, y_pred, average='weighted', zero_division=0)
     f1 = f1_score(y_true, y_pred, average='weighted', zero_division=0)
     
-    cm = confusion_matrix(y_true, y_pred)
+    # Use a fixed label order based on CLASS_TO_IDX so that
+    # confusion matrix and classification report are consistent
+    label_indices = list(range(len(CLASS_TO_IDX)))
+    cm = confusion_matrix(y_true, y_pred, labels=label_indices)
     
     # Prepare output directory
     metrics_dir = 'metrics'
@@ -221,12 +224,21 @@ def main():
     ]
     
     # Class-wise metrics
-    # Re-map indices to class names
-    classes = [IDX_TO_CLASS[i] for i in range(len(CLASS_TO_IDX))]
+    # Re-map indices to class names (must match label_indices order)
+    classes = [IDX_TO_CLASS[i] for i in label_indices]
     
-    # Calculate per-class precision/recall/f1 manually or use classification_report
+    # Calculate per-class precision/recall/f1.
+    # Explicitly pass labels so that number of labels matches target_names,
+    # even if some classes do not appear in y_true/y_pred.
     from sklearn.metrics import classification_report
-    cls_report = classification_report(y_true, y_pred, target_names=classes, output_dict=True)
+    cls_report = classification_report(
+        y_true,
+        y_pred,
+        labels=label_indices,
+        target_names=classes,
+        output_dict=True,
+        zero_division=0,
+    )
     
     for cls in classes:
         metrics = cls_report.get(cls, {})
