@@ -274,7 +274,7 @@ def main():
     print("#" * 50,"class_weights")
     print(class_weights)
     weights_tensor = torch.tensor(class_weights,dtype=torch.float32).to(device)
-    criterion = FocalLoss(weight=weights_tensor,gamma=4.0)
+    criterion = FocalLoss(weight=weights_tensor,gamma=7.0)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
@@ -292,7 +292,7 @@ def main():
         model.train()
         running_loss = 0.0
         
-        # Training
+    # Training
         for X_batch, y_batch in tqdm(train_loader, desc=f"Ep {epoch}/{N_EPOCHS} [Train]", leave=False):
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
             
