@@ -11,10 +11,10 @@ def quick_classify(label):
     if not isinstance(label, str):
         return 'Normal'
     label_lower = label.lower()
-    if 'botnet' in label_lower:
-        return 'Botnet'
-    elif 'c&c' in label_lower or 'cc' in label_lower:
+    if 'c&c' in label_lower or 'cc' in label_lower:
         return 'C&C'
+    elif 'botnet' in label_lower:
+        return 'Botnet'
     else:
         return 'Normal'
 

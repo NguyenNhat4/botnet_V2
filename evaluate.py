@@ -191,6 +191,13 @@ def main():
     
     y_true, y_pred = evaluate_model(model, test_loader, device)
 
+    # Quick sanity check: đếm số mẫu theo lớp trong ground-truth và dự đoán
+    label_indices = list(range(len(CLASS_TO_IDX)))
+    true_counts = {IDX_TO_CLASS[i]: int((y_true == i).sum()) for i in label_indices}
+    pred_counts = {IDX_TO_CLASS[i]: int((y_pred == i).sum()) for i in label_indices}
+    print("\nPhân bố nhãn (ground-truth):", true_counts)
+    print("Phân bố nhãn (dự đoán):     ", pred_counts)
+
     # 5. Metrics & Reporting (Vietnamese)
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, average='weighted', zero_division=0)

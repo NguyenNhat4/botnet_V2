@@ -231,11 +231,7 @@ def main():
     # =============================================================================
     
     # # Class Weights
-    # class_weights = class_weight.compute_class_weight(
-    #     classes=np.unique(y_train),
-    #     y=y_train
-    # )
-
+   
     # Validation Split
     X_train_final, X_val, y_train_final, y_val = train_test_split(
         X_train, y_train, test_size=0.2, random_state=42, stratify=y_train
@@ -269,8 +265,16 @@ def main():
     else:
         print(model)
 
-    # weights_tensor = torch.tensor(,dtype=torch.float).to(device)
-    criterion = FocalLoss(weight=None,gamma=2.0)
+    # Compute class weights to handle class imbalance (sklearn >= 1.4 requires 'class_weight' arg)
+    class_weights = class_weight.compute_class_weight(
+        class_weight="balanced",
+        classes=np.unique(y_train),
+        y=y_train
+    )
+    print("#" * 50,"class_weights")
+    print(class_weights)
+    weights_tensor = torch.tensor(class_weights,dtype=torch.float32).to(device)
+    criterion = FocalLoss(weight=weights_tensor,gamma=4.0)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
