@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler
 from sklearn.utils import class_weight
+from collections import Counter
+from imblearn.over_sampling import SMOTE
 from tqdm.auto import tqdm
 from loss import FocalLoss
 try:
@@ -17,8 +19,8 @@ except ImportError:
     summary = None
 
 from config import (
-    WORKING_DIR, BATCH_SIZE, N_WORKERS, N_EPOCHS, LEARNING_RATE, 
-    STATE_TOP_N, IMAGE_SIZE, TRAIN_SCENARIOS, TEST_SCENARIOS, 
+    WORKING_DIR, BATCH_SIZE, N_WORKERS, N_EPOCHS, LEARNING_RATE,
+    IMAGE_SIZE, TRAIN_SCENARIOS, TEST_SCENARIOS,
     CLASS_TO_IDX, device
 )
 from utils import (
@@ -32,7 +34,7 @@ from preprocessing_utils import (
 from model import BotnetClassifier
 from data_loader import FastBotnetDataset, load_data_from_csvs
 
-def main():
+def main(ispart=True):
     print(f"Working directory: {os.getcwd()}")
     print("="*60)
     print("SYSTEM RESOURCES")
@@ -144,31 +146,18 @@ def main():
     print("\n[1/4] Calculating global IP/Port frequencies...")
     freq_dicts = calculate_global_frequencies(target_csvs)
 
-    # --- Step 2: Detect Top States ---
-    print("\n[2/4] Detecting top states...")
-    try:
-        sample_df = pd.read_csv(target_csvs[0], nrows=100000, low_memory=False)
-        sample_df['Label'] = sample_df['Label'].apply(quick_classify)
-        top_states = sample_df['State'].value_counts().nlargest(STATE_TOP_N).index.tolist()
-        print(f"  Top {STATE_TOP_N} states: {top_states}")
-        del sample_df
-        gc.collect()
-    except Exception as e:
-        print(f"Error detecting top states: {e}")
-        top_states = []
-
-    # --- Step 3: Detect Column Schema ---
-    print("\n[3/4] Detecting column schema...")
+    # --- Step 2: Detect Column Schema ---
+    print("\n[2/3] Detecting column schema...")
     expected_columns = None
     cols_samples = []
 
     for csv_file in target_csvs[:5]:
         try:
             chunk = pd.read_csv(csv_file, nrows=5000, low_memory=False)
-            X_s, y_s, cols_s = process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None)
+            X_s, y_s, cols_s = process_batch_fast_v2(chunk, freq_dicts, expected_columns=None)
             if cols_s:
                 cols_samples.extend(cols_s)
-        except Exception as e:
+        except Exception:
             continue
 
     if cols_samples:
@@ -178,14 +167,11 @@ def main():
         print("  WARNING: Could not detect column schema!")
         return
 
-    # --- Step 4: Scan and Count (Skipped Min/Max per original code being complex) ---
-    # We rely on RobustScaler later.
-    
+    # --- Step 3: Chuẩn bị global_stats ---
     n_features = len(expected_columns)
-    
+
     global_stats = {
         'freq_dicts': freq_dicts,
-        'top_states': top_states,
         'expected_columns': expected_columns,
         'n_features': n_features
     }
@@ -197,6 +183,19 @@ def main():
     
     print("\nLoading TRAINING Data...")
     X_train, y_train = load_data_from_csvs(train_csvs, global_stats, desc="Train Data", is_train=True, scaler=scaler)
+
+    # Optionally use only a part of the training set while keeping class ratio
+    if ispart:
+        subset_fraction = 0.1  # dùng 10% dữ liệu train, vẫn giữ đúng tỉ lệ class
+        print(f"\n[ISPART] Using only {subset_fraction*100:.1f}% of training data with stratified sampling...")
+        X_train, _, y_train, _ = train_test_split(
+            X_train,
+            y_train,
+            train_size=subset_fraction,
+            stratify=y_train,
+            random_state=42
+        )
+        print(f"New Train shape after ISPART: {X_train.shape}")
     
     # Save statistics and scaler after processing training data
     print("\nSaving Global Statistics and Scaler...")
@@ -206,41 +205,39 @@ def main():
     print("\nLoading TESTING Data...")
     X_test, y_test = load_data_from_csvs(test_csvs, global_stats, desc="Test Data", is_train=False, scaler=scaler)
 
-    # Feature Selection: Remove IP frequencies? 
-    # Logic from notebook:
-    drop_cols = ['Src_freq', 'Dst_freq', 'Sport_freq', 'Dport_freq']
-    all_cols = global_stats['expected_columns']
-    
-    keep_indices = [i for i, col in enumerate(all_cols) if col not in drop_cols]
-    keep_cols = [col for i, col in enumerate(all_cols) if i in keep_indices]
-
-    if len(keep_indices) < len(all_cols):
-        print(f"  Dropping {len(drop_cols)} columns: {drop_cols}")
-        X_train = X_train[:, keep_indices]
-        X_test = X_test[:, keep_indices]
-        n_features = len(keep_indices)
-        print(f"  Features remaining: {n_features}")
-    else:
-        print("  No columns dropped.")
-
     print(f"\nTrain shape: {X_train.shape}")
     print(f"Test shape:  {X_test.shape}")
 
     # =============================================================================
-    # 6. MODEL SET UP
+    # 6. APPLY SMOTE (CHỈ TRÊN TRAIN SET)
+    # =============================================================================
+    print("\n" + "="*70)
+    print("APPLYING SMOTE TO BALANCE TRAINING DATA")
+    print("="*70)
+    
+    print(f"\nPhân phối class TRƯỚC SMOTE: {Counter(y_train)}")
+    
+    # Áp dụng SMOTE để tăng số lượng mẫu Botnet
+    # CHỈ áp dụng trên tập train, KHÔNG đụng vào test/val
+    smote = SMOTE(random_state=42, k_neighbors=5, sampling_strategy='auto')
+    X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
+    
+    print(f"Phân phối class SAU SMOTE: {Counter(y_train_res)}")
+    print(f"Train shape sau SMOTE: {X_train_res.shape}")
+    print("="*70)
+
+    # =============================================================================
+    # 7. MODEL SET UP
     # =============================================================================
     
-    # # Class Weights
-   
-    # Validation Split
+    # Validation Split (sau khi đã áp dụng SMOTE)
     X_train_final, X_val, y_train_final, y_val = train_test_split(
-        X_train, y_train, test_size=0.2, random_state=42, stratify=y_train
+        X_train_res, y_train_res, test_size=0.2, random_state=42, stratify=y_train_res
     )
 
     train_ds = FastBotnetDataset(X_train_final, y_train_final)
     
-    print("Using focal loss")
-   
+    print("\nSử dụng CrossEntropyLoss (không dùng class_weight vì đã có SMOTE)")
    
     train_loader = DataLoader(
         train_ds,
@@ -256,30 +253,24 @@ def main():
     test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
     # Model
-    print("Initializing 1D CNN Model...")
+    print("Initializing 2D CNN Image Model (pretrained)...")
     model = BotnetClassifier(base_model=None, n_features=n_features, n_classes=len(CLASS_TO_IDX))
     model = model.to(device)
 
     if summary:
-        summary(model, input_size=(BATCH_SIZE, n_features))
+        # Input: ảnh 1x32x32
+        summary(model, input_size=(BATCH_SIZE, 1, IMAGE_SIZE, IMAGE_SIZE))
     else:
         print(model)
 
-    # Compute class weights to handle class imbalance (sklearn >= 1.4 requires 'class_weight' arg)
-    class_weights = class_weight.compute_class_weight(
-        class_weight="balanced",
-        classes=np.unique(y_train),
-        y=y_train
-    )
-    print("#" * 50,"class_weights")
-    print(class_weights)
-    weights_tensor = torch.tensor(class_weights,dtype=torch.float32).to(device)
-    criterion = FocalLoss(weight=weights_tensor,gamma=7.0)
+    # Bỏ class_weight vì đã dùng SMOTE để cân bằng dữ liệu
+    # SMOTE đã tạo ra dữ liệu thật (synthetic) nên không cần ép model bằng trọng số
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
     # =============================================================================
-    # 7. TRAINING LOOP
+    # 8. TRAINING LOOP
     # =============================================================================
     train_losses = []
     valid_losses = []
@@ -329,9 +320,9 @@ def main():
             best_val_loss = epoch_val_loss
         plot_and_save_loss(train_losses, valid_losses, f'training_history_loss_{N_EPOCHS}.png')
     # =============================================================================
-    # 8. RESULTS
+    # 9. RESULTS
     # =============================================================================
     print("Training Complete.")
 
 if __name__ == "__main__":
-    main()
+    main(ispart=True)

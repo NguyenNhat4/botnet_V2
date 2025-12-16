@@ -1,61 +1,61 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models
 
-class Botnet1DCNN(nn.Module):
-    def __init__(self, n_features, n_classes=3):
-        super(Botnet1DCNN, self).__init__()
 
-        # Less aggressive pooling, more feature extraction
-        self.layer1 = nn.Sequential(
-            nn.Conv1d(1, 64, kernel_size=5, padding=2),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.Dropout(0.3)
-            # NO POOLING HERE - preserve spatial information
+class BotnetImageCNN(nn.Module):
+    """
+    CNN 2D dùng pretrained MobileNetV3-Small.
+    - Input: ảnh 1x32x32
+    - Nội bộ resize lên 224x224 cho phù hợp với pretrained weights.
+    """
+
+    def __init__(self, n_classes: int = 3):
+        super().__init__()
+
+        # Pretrained MobileNetV3 Small (nhẹ)
+        weights = models.MobileNet_V3_Small_Weights.DEFAULT
+        base = models.mobilenet_v3_small(weights=weights)
+
+        # Chỉnh conv đầu tiên nhận 1 kênh thay vì 3 kênh
+        first_conv = base.features[0][0]
+        new_conv = nn.Conv2d(
+            in_channels=1,
+            out_channels=first_conv.out_channels,
+            kernel_size=first_conv.kernel_size,
+            stride=first_conv.stride,
+            padding=first_conv.padding,
+            bias=False,
         )
 
-        self.layer2 = nn.Sequential(
-            nn.Conv1d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.MaxPool1d(2)  # Only pool once
-        )
+        # Khởi tạo trọng số từ pretrained: trung bình theo channel
+        with torch.no_grad():
+            new_conv.weight[:] = first_conv.weight.mean(dim=1, keepdim=True)
 
-        self.layer3 = nn.Sequential(
-            nn.Conv1d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(0.3)
-        )
+        base.features[0][0] = new_conv
 
-        # Global pooling then classifier
-        self.global_pool = nn.AdaptiveAvgPool1d(1)
+        # Thay classifier cuối cho đúng số lớp
+        in_features = base.classifier[-1].in_features
+        base.classifier[-1] = nn.Linear(in_features, n_classes)
 
-        self.fc = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, n_classes)
-        )
+        self.base = base
 
-    def forward(self, x):
-        # x shape: [Batch, n_features]
-        # Unsqueeze to create channel dimension: [Batch, 1, n_features]
-        x = x.unsqueeze(1) 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.global_pool(x)
-        x = self.fc(x)
-        return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: [B, 1, 32, 32] -> resize 224x224 cho MobileNet
+        x = F.interpolate(x, size=(224, 224), mode="bilinear", align_corners=False)
+        return self.base(x)
+
 
 class BotnetClassifier(nn.Module):
-    def __init__(self, base_model, n_features, image_size=None, n_classes=3):
-        # image_size is deprecated but kept for compatibility if needed
-        super().__init__()
-        self.model = Botnet1DCNN(n_features=n_features, n_classes=n_classes)
+    """
+    Wrapper giữ API cũ:
+      - vẫn nhận n_features, image_size nhưng bỏ qua; dữ liệu đã là ảnh 1x32x32.
+    """
 
-    def forward(self, x):
+    def __init__(self, base_model=None, n_features=None, image_size: int = 32, n_classes: int = 3):
+        super().__init__()
+        self.model = BotnetImageCNN(n_classes=n_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
