@@ -1,0 +1,91 @@
+BÁO CÁO PHÂN TÍCH DỮ LIỆU: 2_2
+============================================================
+
+1. TỔNG QUAN
+   - Tổng số dòng: 1808122
+   - Số cột: 16
+
+2. PHÂN BỐ NHÃN (Lớp Mapped)
+   - Normal: 1787181 (98.84%)
+   - Botnet: 20941 (1.16%)
+
+3. TOP 20 NHÃN GỐC (Raw Labels)
+   - flow=To-Background-UDP-CVUT-DNS-Server: 660177
+   - flow=Background-UDP-Established: 602264
+   - flow=Background-UDP-Attempt: 201380
+   - flow=Background-TCP-Established: 149962
+   - flow=Background-Established-cmpgw-CVUT: 78133
+   - flow=Background: 29162
+   - flow=Background-TCP-Attempt: 25929
+   - flow=To-Background-CVUT-Proxy: 12950
+   - flow=From-Botnet-V43-TCP-Attempt: 9759
+   - flow=From-Normal-V43-Stribrek: 8960
+   - flow=Background-Attempt-cmpgw-CVUT: 6096
+   - flow=From-Botnet-V43-TCP-Attempt-SPAM: 5477
+   - flow=Background-UDP-NTP-Established-1: 1601
+   - flow=To-Background-CVUT-WebServer: 1449
+   - flow=From-Botnet-V43-TCP-HTTP-Persistent-Down-1: 1210
+   - flow=From-Botnet-V43-UDP-DNS: 788
+   - flow=Background-ajax.google: 734
+   - flow=Background-google-analytics7: 555
+   - flow=Background-google-analytics8: 527
+   - flow=Background-google-analytics5: 514
+
+4. THỐNG KÊ SỐ HỌC (Numerical Stats)
+   * Dur:
+     - Trung bình (Mean): 400.67
+     - Trung vị (Median): 0.00
+     - Lớn nhất (Max):    3600.03
+     - Độ lệch chuẩn (Std): 951.66
+   * TotPkts:
+     - Trung bình (Mean): 39.74
+     - Trung vị (Median): 2.00
+     - Lớn nhất (Max):    4077379.00
+     - Độ lệch chuẩn (Std): 4073.72
+   * TotBytes:
+     - Trung bình (Mean): 35038.11
+     - Trung vị (Median): 261.00
+     - Lớn nhất (Max):    4376238778.00
+     - Độ lệch chuẩn (Std): 4190501.61
+   * SrcBytes:
+     - Trung bình (Mean): 2210.68
+     - Trung vị (Median): 85.00
+     - Lớn nhất (Max):    248522163.00
+     - Độ lệch chuẩn (Std): 303494.90
+
+5. THÔNG TIN PHÂN LOẠI (Categorical Info)
+   * Top 10 Proto:
+     - udp: 1485660
+     - tcp: 293675
+     - icmp: 23616
+     - rtp: 2023
+     - rtcp: 1479
+     - igmp: 1241
+     - arp: 340
+     - ipv6-icmp: 44
+     - udt: 14
+     - ipx/spx: 9
+   * Top 10 State:
+     - CON: 1284895
+     - INT: 203138
+     - FSPA_FSPA: 141624
+     - S_: 33051
+     - SRPA_FSPA: 20003
+     - FSA_FSA: 17697
+     - URP: 15634
+     - FSRPA_FSPA: 9049
+     - S_RA: 8805
+     - SRPA_SPA: 8752
+   * Top 10 Dir:
+     -   <->: 1285353
+     -    ->: 513135
+     -   <?>: 4117
+     -   <-: 2652
+     -    ?>: 2523
+     -   who: 342
+
+6. GIÁ TRỊ THIẾU (Missing Values)
+   - Sport: 3993
+   - Dport: 2973
+   - sTos: 4324
+   - dTos: 269835

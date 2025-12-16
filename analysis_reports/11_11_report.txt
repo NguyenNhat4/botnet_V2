@@ -1,0 +1,92 @@
+BÁO CÁO PHÂN TÍCH DỮ LIỆU: 11_11
+============================================================
+
+1. TỔNG QUAN
+   - Tổng số dòng: 107251
+   - Số cột: 16
+
+2. PHÂN BỐ NHÃN (Lớp Mapped)
+   - Normal: 99087 (92.39%)
+   - Botnet: 8164 (7.61%)
+
+3. TOP 20 NHÃN GỐC (Raw Labels)
+   - flow=Background-UDP-Established: 37342
+   - flow=To-Background-UDP-CVUT-DNS-Server: 30568
+   - flow=Background-TCP-Established: 9363
+   - flow=Background-Established-cmpgw-CVUT: 6981
+   - flow=From-Botnet-V52-1-ICMP: 4144
+   - flow=From-Botnet-V52-2-ICMP: 3999
+   - flow=Background-Attempt-cmpgw-CVUT: 3378
+   - flow=Background: 3230
+   - flow=From-Normal-V52-Grill: 2113
+   - flow=Background-UDP-Attempt: 1951
+   - flow=Background-TCP-Attempt: 1244
+   - flow=To-Background-CVUT-Proxy: 661
+   - flow=From-Normal-V52-Stribrek: 581
+   - flow=Background-UDP-NTP-Established-1: 287
+   - flow=To-Background-CVUT-WebServer: 162
+   - flow=Background-google-analytics13: 134
+   - flow=Background-google-analytics10: 103
+   - flow=Background-google-analytics8: 95
+   - flow=Background-google-analytics3: 76
+   - flow=Background-google-analytics7: 74
+
+4. THỐNG KÊ SỐ HỌC (Numerical Stats)
+   * Dur:
+     - Trung bình (Mean): 49.91
+     - Trung vị (Median): 0.00
+     - Lớn nhất (Max):    971.29
+     - Độ lệch chuẩn (Std): 169.01
+   * TotPkts:
+     - Trung bình (Mean): 40.98
+     - Trung vị (Median): 2.00
+     - Lớn nhất (Max):    498932.00
+     - Độ lệch chuẩn (Std): 2808.17
+   * TotBytes:
+     - Trung bình (Mean): 31777.84
+     - Trung vị (Median): 261.00
+     - Lớn nhất (Max):    503830705.00
+     - Độ lệch chuẩn (Std): 2646017.67
+   * SrcBytes:
+     - Trung bình (Mean): 3251.47
+     - Trung vị (Median): 85.00
+     - Lớn nhất (Max):    22872870.00
+     - Độ lệch chuẩn (Std): 150354.95
+
+5. THÔNG TIN PHÂN LOẠI (Categorical Info)
+   * Top 10 Proto:
+     - udp: 74884
+     - tcp: 19307
+     - icmp: 12805
+     - igmp: 82
+     - rtcp: 76
+     - arp: 54
+     - rtp: 21
+     - ipv6-icmp: 12
+     - udt: 5
+     - rarp: 2
+   * Top 10 State:
+     - CON: 70961
+     - FSPA_FSPA: 8325
+     - UNK: 6524
+     - INT: 4154
+     - TXD: 1843
+     - SRPA_FSPA: 1582
+     - URP: 1379
+     - PA_PA: 1214
+     - S_RA: 1166
+     - ECO: 838
+   * Top 10 Dir:
+     -   <->: 71234
+     -    ->: 32855
+     -   <?>: 2030
+     -   <-: 806
+     -    ?>: 270
+     -   who: 56
+
+6. GIÁ TRỊ THIẾU (Missing Values)
+   - Sport: 463
+   - Dport: 7900
+   - State: 91
+   - sTos: 980
+   - dTos: 16959
