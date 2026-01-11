@@ -25,14 +25,13 @@ ram_gb = psutil.virtual_memory().total / 1e9
 # Training config
 N_EPOCHS = 6
 LEARNING_RATE = 0.0001
-STATE_TOP_N = 15
 IMAGE_SIZE = 32
 
 # =============================================================================
 # DEFINING SCENARIOS
 # =============================================================================
 # Train scenarios: 
-TRAIN_SCENARIOS = ['3','4', '11']
+TRAIN_SCENARIOS = ['11']
 
 # Test scenario: Rbot
 TEST_SCENARIOS = ['10']

@@ -1,0 +1,26 @@
+BÁO CÁO ĐÁNH GIÁ MÔ HÌNH (MODEL EVALUATION REPORT)
+==================================================
+Kịch bản kiểm thử (Test Scenarios): ['10']
+Tổng số mẫu (Total Samples): 1309791
+--------------------------------------------------
+Độ chính xác (Accuracy): 0.9337
+Độ chính xác (Precision - Weighted): 0.9377
+Độ nhạy (Recall - Weighted): 0.9337
+Điểm F1 (F1-Score - Weighted): 0.9127
+==================================================
+Chi tiết theo lớp (Class-wise Details):
+
+Lớp: Botnet
+  Precision: 0.9886
+  Recall:    0.1903
+  F1-Score:  0.3192
+
+Lớp: C&C
+  Precision: 0.0551
+  Recall:    0.8788
+  F1-Score:  0.1038
+
+Lớp: Normal
+  Precision: 0.9332
+  Recall:    0.9994
+  F1-Score:  0.9652

@@ -12,8 +12,8 @@ from tqdm.auto import tqdm
 import gc
 
 from config import (
-    WORKING_DIR, BATCH_SIZE, TRAIN_SCENARIOS, TEST_SCENARIOS, 
-    CLASS_TO_IDX, IDX_TO_CLASS, STATE_TOP_N, device
+    WORKING_DIR, BATCH_SIZE, TRAIN_SCENARIOS, TEST_SCENARIOS,
+    CLASS_TO_IDX, IDX_TO_CLASS, device
 )
 from utils import get_csv_paths, create_directory, check_csv_in_folder, download_file, rename
 from preprocessing_utils import (
@@ -29,40 +29,27 @@ def compute_stats_from_train(main_dir):
     """
     print("Recomputing statistics from training data...")
     train_csvs = get_csv_paths(main_dir, TRAIN_SCENARIOS)
-    
+
     if not train_csvs:
         print("No training files found! Please check TRAIN_SCENARIOS and dataset.")
         return None, None
 
     # --- Step 1: Calculate Global Frequencies ---
-    print("\n[1/3] Calculating global IP/Port frequencies...")
+    print("\n[1/2] Calculating global IP/Port frequencies...")
     freq_dicts = calculate_global_frequencies(train_csvs)
 
-    # --- Step 2: Detect Top States ---
-    print("\n[2/3] Detecting top states...")
-    top_states = []
-    try:
-        sample_df = pd.read_csv(train_csvs[0], nrows=100000, low_memory=False)
-        sample_df['Label'] = sample_df['Label'].apply(quick_classify)
-        top_states = sample_df['State'].value_counts().nlargest(STATE_TOP_N).index.tolist()
-        print(f"  Top {STATE_TOP_N} states: {top_states}")
-        del sample_df
-        gc.collect()
-    except Exception as e:
-        print(f"Error detecting top states: {e}")
-
-    # --- Step 3: Detect Column Schema ---
-    print("\n[3/3] Detecting column schema...")
+    # --- Step 2: Detect Column Schema ---
+    print("\n[2/2] Detecting column schema...")
     expected_columns = None
     cols_samples = []
 
     for csv_file in train_csvs[:5]:
         try:
             chunk = pd.read_csv(csv_file, nrows=5000, low_memory=False)
-            X_s, y_s, cols_s = process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None)
+            X_s, y_s, cols_s = process_batch_fast_v2(chunk, freq_dicts, expected_columns=None)
             if cols_s:
                 cols_samples.extend(cols_s)
-        except Exception as e:
+        except Exception:
             continue
 
     if cols_samples:
@@ -74,7 +61,6 @@ def compute_stats_from_train(main_dir):
 
     global_stats = {
         'freq_dicts': freq_dicts,
-        'top_states': top_states,
         'expected_columns': expected_columns,
         'n_features': len(expected_columns)
     }
@@ -158,20 +144,9 @@ def main():
     test_csvs = get_csv_paths(main_dir, TEST_SCENARIOS)
     print(f"Found {len(test_csvs)} testing files for evaluation.")
     
-    # Handle Feature Selection (match train.py logic)
-    drop_cols = ['Src_freq', 'Dst_freq', 'Sport_freq', 'Dport_freq']
-    all_cols = global_stats['expected_columns']
-    keep_indices = [i for i, col in enumerate(all_cols) if col not in drop_cols]
-    
     # Load data
     X_test, y_test = load_data_from_csvs(test_csvs, global_stats, desc="Loading Test Data", is_train=False, scaler=scaler)
-    
-    if len(keep_indices) < len(all_cols):
-        X_test = X_test[:, keep_indices]
-        n_features = len(keep_indices)
-    else:
-        n_features = global_stats['n_features']
-        
+
     print(f"Test Data Shape: {X_test.shape}")
 
     # 3. Load Model
@@ -180,7 +155,8 @@ def main():
         print(f"Model file {model_path} not found!")
         return
         
-    model = BotnetClassifier(base_model=None, n_features=n_features, n_classes=len(CLASS_TO_IDX))
+    # n_features được giữ cho tương thích API nhưng không dùng trong CNN ảnh
+    model = BotnetClassifier(base_model=None, n_features=global_stats['n_features'], n_classes=len(CLASS_TO_IDX))
     model.load_state_dict(torch.load(model_path, map_location=device))
     model = model.to(device)
     print("Model loaded successfully.")

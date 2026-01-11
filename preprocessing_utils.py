@@ -58,7 +58,7 @@ def calculate_global_frequencies(csv_paths):
             
     return freqs
 
-def process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None):
+def process_batch_fast_v2(chunk, freq_dicts, expected_columns=None):
     """
     Processes a batch (DataFrame chunk).
     1. Cleans data.
@@ -97,16 +97,31 @@ def process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None):
         else:
             df[freq_col_name] = 0
 
-    # 5. Handle Port Columns (Keep as numeric features)
+    # 5. Split IP thành 4 octet (4 feature riêng) thay vì một integer lớn
+    for ip_col in ['SrcAddr', 'DstAddr']:
+        if ip_col in df.columns:
+            # Chuyển sang string để split theo '.'
+            ip_str = df[ip_col].astype(str)
+            parts = ip_str.str.split('.', expand=True)
+
+            # Đảm bảo có đủ 4 cột (nếu IP không chuẩn, phần thiếu sẽ là NaN)
+            for i in range(4):
+                if i < parts.shape[1]:
+                    df[f'{ip_col}_octet_{i+1}'] = pd.to_numeric(parts[i], errors='coerce').fillna(0)
+                else:
+                    # Nếu thiếu cột, tạo cột toàn 0
+                    df[f'{ip_col}_octet_{i+1}'] = 0
+
+    # 6. Handle Port Columns (Keep as numeric features)
     for col in ['Sport', 'Dport']:
         if col in df.columns:
             # Force numeric (handle hex or strings)
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-    # 6. Drop IP addresses (High cardinality, replaced by freq)
+    # 7. Drop raw IP addresses (đã có tần suất + 4 octet)
     df = df.drop(columns=['SrcAddr', 'DstAddr'], errors='ignore')
     
-    # 7. One-Hot Encoding for 'Proto'
+    # 8. One-Hot Encoding for 'Proto'
     if 'Proto' in df.columns:
         # Common protos: TCP, UDP, ICMP
         # Limit cardinality if needed? Usually low.
@@ -114,12 +129,8 @@ def process_batch_fast_v2(chunk, top_states, freq_dicts, expected_columns=None):
         df = pd.concat([df, dummies], axis=1)
         df = df.drop(columns=['Proto'])
         
-    # 8. One-Hot Encoding for 'State' using top_states
+    # 8. One-Hot Encoding for 'State' (không giới hạn top state)
     if 'State' in df.columns:
-        # Keep only top states, others -> 'Other'
-        # Ensure top_states is valid list
-        if top_states:
-            df['State'] = df['State'].apply(lambda x: x if x in top_states else 'Other')
         dummies = pd.get_dummies(df['State'], prefix='State')
         df = pd.concat([df, dummies], axis=1)
         df = df.drop(columns=['State'])
